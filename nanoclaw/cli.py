@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """nanoclaw.cli - REPL entry script.
 
-Source: s_full.py lines 710-741
-
 Provides interactive REPL for manual agent interaction.
-REPL commands: /tasks, /compact, /team, /inbox
 """
 
 import os
@@ -14,18 +11,10 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 
 from .agent import AgentConfig, AgentLoop
-from .core.compression import auto_compact
 
 
 def create_default_config(workdir: Path = None) -> AgentConfig:
-    """Create config from environment variables.
-
-    Args:
-        workdir: Working directory (defaults to cwd)
-
-    Returns:
-        AgentConfig with env-based client and model
-    """
+    """Create config from environment variables."""
     load_dotenv(override=True)
     workdir = workdir or Path.cwd()
 
@@ -63,13 +52,11 @@ def run_repl() -> None:
 
         if query.strip() == "/compact":
             if history:
-                print("[manual compact via /compact]")
-                history[:] = auto_compact(
+                print("[manual compact]")
+                history[:] = agent.memory.compact(
                     history,
                     config.client,
-                    config.model,
-                    config.transcript_dir,
-                    agent.memory
+                    config.model
                 )
             continue
 
@@ -92,12 +79,10 @@ def run_repl() -> None:
 
         if should_compress:
             print("[compress triggered - compacting]")
-            history[:] = auto_compact(
+            history[:] = agent.memory.compact(
                 history,
                 config.client,
-                config.model,
-                config.transcript_dir,
-                agent.memory
+                config.model
             )
 
         # Print response

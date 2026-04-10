@@ -14,7 +14,6 @@ from anthropic import Anthropic
 
 from .core.tools import run_bash, run_read, run_write, run_edit
 from .core.schemas import TOOL_SCHEMAS
-from .core.compression import estimate_tokens, microcompact, auto_compact
 from .coordination.todos import TodoManager
 from .coordination.tasks import TaskManager
 from .coordination.skills import SkillLoader
@@ -297,15 +296,13 @@ class AgentLoop:
 
         while True:
             # 1. Compression pipeline
-            microcompact(messages)
+            self.memory._microcompact(messages)
 
-            if estimate_tokens(messages) > self.config.token_threshold:
-                messages[:] = auto_compact(
+            if self.memory.estimate_tokens(messages) > self.config.token_threshold:
+                messages[:] = self.memory.compact(
                     messages,
                     self.config.client,
-                    self.config.model,
-                    self.config.transcript_dir,
-                    self.memory
+                    self.config.model
                 )
 
             # 2. Drain background notifications

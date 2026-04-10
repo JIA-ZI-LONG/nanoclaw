@@ -1,15 +1,23 @@
-"""Memory store - history.jsonl and MEMORY.md management."""
+"""Memory store - storage + compression for long conversations."""
 
 import json
+import time
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from anthropic import Anthropic
 
 
 class MemoryStore:
-    """Memory file I/O: history.jsonl + MEMORY.md.
+    """Memory management: storage + compression.
 
-    history.jsonl: append-only LLM summaries
-    MEMORY.md: long-term knowledge
+    Files:
+        memory/history.jsonl  - append-only LLM summaries
+        memory/MEMORY.md      - long-term knowledge
+        memory/.cursor        - write position counter
+        .transcripts/         - full conversation archives
     """
 
     def __init__(self, workdir: Path, max_history: int = 500):
@@ -17,11 +25,85 @@ class MemoryStore:
         self.max_history = max_history
         self.memory_dir = workdir / "memory"
         self.memory_dir.mkdir(exist_ok=True)
+        self.transcript_dir = workdir / ".transcripts"
+        self.transcript_dir.mkdir(exist_ok=True)
         self.history_file = self.memory_dir / "history.jsonl"
         self.memory_file = self.memory_dir / "MEMORY.md"
         self._cursor_file = self.memory_dir / ".cursor"
 
-    # -- history.jsonl --
+    # =========================================================================
+    # Token estimation
+    # =========================================================================
+
+    @staticmethod
+    def estimate_tokens(messages: list) -> int:
+        """Estimate token count (JSON length / 4)."""
+        return len(json.dumps(messages, default=str)) // 4
+
+    # =========================================================================
+    # Compression
+    # =========================================================================
+
+    def _microcompact(self, messages: list) -> None:
+        """Clear old tool_results (>100 chars, keep last 3). Mutates in-place."""
+        tool_results = []
+        for msg in messages:
+            if msg["role"] == "user" and isinstance(msg.get("content"), list):
+                for part in msg["content"]:
+                    if isinstance(part, dict) and part.get("type") == "tool_result":
+                        tool_results.append(part)
+
+        if len(tool_results) <= 3:
+            return
+        for part in tool_results[:-3]:
+            if isinstance(part.get("content"), str) and len(part["content"]) > 100:
+                part["content"] = "[cleared]"
+
+    def compact(self, messages: list, client: "Anthropic", model: str) -> list:
+        """Compress messages via LLM summary.
+
+        - Saves full transcript to .transcripts/
+        - Writes summary to history.jsonl
+        - Returns condensed message list
+
+        Args:
+            messages: Conversation history
+            client: Anthropic client
+            model: Model ID
+
+        Returns:
+            Condensed message list with summary
+        """
+        # Save full transcript
+        path = self.transcript_dir / f"transcript_{int(time.time())}.jsonl"
+        with open(path, "w", encoding="utf-8") as f:
+            for msg in messages:
+                f.write(json.dumps(msg, default=str, ensure_ascii=False) + "\n")
+
+        # LLM summary
+        conv_text = json.dumps(messages, default=str)[-80000:]
+        resp = client.messages.create(
+            model=model,
+            messages=[{"role": "user", "content": f"Summarize for continuity:\n{conv_text}"}],
+            max_tokens=2000,
+        )
+        summary = ""
+        for block in resp.content:
+            if hasattr(block, "text"):
+                print(f"\033[33m[Compressed]\033[0m {block.text[:100]}...")
+                summary = block.text
+
+        # Save to history.jsonl
+        if summary:
+            self.append_history(summary)
+
+        return [
+            {"role": "user", "content": f"[Compressed. Transcript: {path}]\n{summary}"},
+        ]
+
+    # =========================================================================
+    # history.jsonl
+    # =========================================================================
 
     def append_history(self, content: str) -> int:
         """Append summary to history.jsonl, return cursor."""
@@ -38,31 +120,7 @@ class MemoryStore:
 
     def read_history(self, since: int = 0) -> list[dict]:
         """Read history entries with cursor > since."""
-        entries = []
-        try:
-            with open(self.history_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        try:
-                            e = json.loads(line)
-                            if e.get("cursor", 0) > since:
-                                entries.append(e)
-                        except json.JSONDecodeError:
-                            continue
-        except FileNotFoundError:
-            pass
-        return entries
-
-    def compact_history(self) -> None:
-        """Drop oldest entries if exceeds max_history."""
-        if self.max_history <= 0:
-            return
-        entries = self._read_all_entries()
-        if len(entries) <= self.max_history:
-            return
-        kept = entries[-self.max_history:]
-        self._write_entries(kept)
+        return [e for e in self._read_all_entries() if e.get("cursor", 0) > since]
 
     def _next_cursor(self) -> int:
         if self._cursor_file.exists():
@@ -93,7 +151,18 @@ class MemoryStore:
             for e in entries:
                 f.write(json.dumps(e, ensure_ascii=False) + "\n")
 
-    # -- MEMORY.md --
+    def compact_history(self) -> None:
+        """Drop oldest entries if exceeds max_history."""
+        if self.max_history <= 0:
+            return
+        entries = self._read_all_entries()
+        if len(entries) <= self.max_history:
+            return
+        self._write_entries(entries[-self.max_history:])
+
+    # =========================================================================
+    # MEMORY.md
+    # =========================================================================
 
     def read_memory(self) -> str:
         try:
@@ -104,7 +173,9 @@ class MemoryStore:
     def write_memory(self, content: str) -> None:
         self.memory_file.write_text(content, encoding="utf-8")
 
-    # -- context injection --
+    # =========================================================================
+    # Context injection
+    # =========================================================================
 
     def get_context(self) -> str:
         """Get memory context for system prompt."""

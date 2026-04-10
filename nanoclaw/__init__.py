@@ -5,7 +5,8 @@ A clean, reusable agent framework.
 Provides layered architecture for both production use and educational reference.
 
 Layers:
-- core/: Foundation (tools, schemas, compression)
+- core/: Foundation (tools, schemas)
+- memory/: Storage + compression
 - coordination/: State management (todos, tasks, skills)
 - execution/: Agent spawning and background work
 - communication/: Messaging and protocols
@@ -18,7 +19,6 @@ from anthropic import Anthropic
 
 from .agent import AgentConfig, AgentLoop
 from .core.tools import run_bash, run_read, run_write, run_edit, safe_path
-from .core.compression import estimate_tokens, microcompact, auto_compact
 from .coordination.todos import TodoManager
 from .coordination.tasks import TaskManager
 from .coordination.skills import SkillLoader
@@ -28,6 +28,7 @@ from .communication.messaging import MessageBus
 from .communication.shutdown import ShutdownProtocol
 from .communication.plans import PlanApprovalProtocol
 from .team.manager import TeammateManager
+from .memory import MemoryStore
 
 
 def create_agent(
@@ -35,16 +36,7 @@ def create_agent(
     client: Anthropic = None,
     model: str = None
 ) -> AgentLoop:
-    """Quick factory for AgentLoop with defaults.
-
-    Args:
-        workdir: Working directory (defaults to cwd)
-        client: Anthropic client (defaults to env-based)
-        model: Model ID (defaults to env-based)
-
-    Returns:
-        AgentLoop instance ready to run
-    """
+    """Quick factory for AgentLoop with defaults."""
     from .cli import create_default_config
     config = create_default_config(workdir)
     if client:
@@ -60,7 +52,9 @@ __all__ = [
 
     # Core
     "safe_path", "run_bash", "run_read", "run_write", "run_edit",
-    "estimate_tokens", "microcompact", "auto_compact",
+
+    # Memory
+    "MemoryStore",
 
     # Coordination
     "TodoManager", "TaskManager", "SkillLoader",
