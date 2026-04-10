@@ -5,12 +5,11 @@ A clean, reusable agent framework.
 Provides layered architecture for both production use and educational reference.
 
 Layers:
-- core/: Foundation (tools, schemas)
+- tools/: Tool implementations (bash, read, write, edit) + schemas
 - memory/: Storage + compression
 - coordination/: State management (todos, tasks, skills)
 - execution/: Agent spawning and background work
-- communication/: Messaging and protocols
-- team/: Teammate orchestration
+- team/: Teammate orchestration + messaging + protocols
 - agent.py: Main loop integration
 """
 
@@ -18,16 +17,13 @@ from pathlib import Path
 from anthropic import Anthropic
 
 from .agent import AgentConfig, AgentLoop
-from .core.tools import run_bash, run_read, run_write, run_edit, safe_path
+from .tools import run_bash, run_read, run_write, run_edit, safe_path, TOOL_SCHEMAS
 from .coordination.todos import TodoManager
 from .coordination.tasks import TaskManager
 from .coordination.skills import SkillLoader
 from .execution.subagent import run_subagent
 from .execution.background import BackgroundManager
-from .communication.messaging import MessageBus
-from .communication.shutdown import ShutdownProtocol
-from .communication.plans import PlanApprovalProtocol
-from .team.manager import TeammateManager
+from .team import TeammateManager, MessageBus, ShutdownProtocol, PlanApprovalProtocol
 from .memory import MemoryStore
 
 
@@ -50,8 +46,8 @@ __all__ = [
     # Agent
     "AgentConfig", "AgentLoop", "create_agent",
 
-    # Core
-    "safe_path", "run_bash", "run_read", "run_write", "run_edit",
+    # Tools
+    "safe_path", "run_bash", "run_read", "run_write", "run_edit", "TOOL_SCHEMAS",
 
     # Memory
     "MemoryStore",
@@ -62,9 +58,6 @@ __all__ = [
     # Execution
     "run_subagent", "BackgroundManager",
 
-    # Communication
-    "MessageBus", "ShutdownProtocol", "PlanApprovalProtocol",
-
-    # Team
-    "TeammateManager",
+    # Team (includes messaging + protocols)
+    "TeammateManager", "MessageBus", "ShutdownProtocol", "PlanApprovalProtocol",
 ]

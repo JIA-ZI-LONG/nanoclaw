@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""nanoclaw.core - Core mechanisms with zero internal dependencies.
+"""nanoclaw.tools - Tool implementations and schemas.
 
-This layer provides the foundational building blocks:
+This layer provides:
 - tools.py: bash, read, write, edit operations with safe_path validation
 - schemas.py: Anthropic API tool schema constants
 """
