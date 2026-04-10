@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番茄钟 - Pomodoro Timer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="pomodoro-card">
+            <!-- 标题 -->
+            <div class="header">
+                <h1 class="title">🍅 番茄钟</h1>
+                <p class="subtitle">专注工作，高效生活</p>
+            </div>
+
+            <!-- 状态指示器 -->
+            <div class="status-container">
+                <div class="status-badge" id="statusBadge">
+                    <span class="status-icon">💼</span>
+                    <span class="status-text" id="statusText">工作时间</span>
+                </div>
+            </div>
+
+            <!-- 计时器显示 -->
+            <div class="timer-container">
+                <div class="timer-circle">
+                    <svg class="progress-ring">
+                        <circle class="progress-ring-bg" cx="160" cy="160" r="150"></circle>
+                        <circle class="progress-ring-progress" id="progressRing" cx="160" cy="160" r="150"></circle>
+                    </svg>
+                    <div class="timer-display">
+                        <div class="time" id="timerDisplay">25:00</div>
+                        <div class="session-label" id="sessionLabel">工作时段</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制按钮 -->
+            <div class="controls">
+                <button class="btn btn-primary" id="startBtn">
+                    <span class="btn-icon">▶</span>
+                    <span class="btn-text">开始</span>
+                </button>
+                <button class="btn btn-secondary" id="pauseBtn">
+                    <span class="btn-icon">⏸</span>
+                    <span class="btn-text">暂停</span>
+                </button>
+                <button class="btn btn-reset" id="resetBtn">
+                    <span class="btn-icon">↻</span>
+                    <span class="btn-text">重置</span>
+                </button>
+            </div>
+
+            <!-- 模式切换 -->
+            <div class="mode-switch">
+                <button class="mode-btn active" id="workModeBtn" data-mode="work">
+                    💼 工作 25分钟
+                </button>
+                <button class="mode-btn" id="breakModeBtn" data-mode="break">
+                    ☕ 休息 5分钟
+                </button>
+            </div>
+
+            <!-- 统计面板 -->
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-icon">🍅</div>
+                    <div class="stat-value" id="pomodoroCount">0</div>
+                    <div class="stat-label">完成番茄</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">⏱</div>
+                    <div class="stat-value" id="totalTime">0分钟</div>
+                    <div class="stat-label">专注时间</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="sessionCount">0</div>
+                    <div class="stat-label">今日时段</div>
+                </div>
+            </div>
+
+            <!-- 设置面板 -->
+            <div class="settings-panel">
+                <button class="settings-toggle" id="settingsToggle">
+                    ⚙️ 设置
+                </button>
+                <div class="settings-content" id="settingsContent">
+                    <div class="setting-item">
+                        <label for="workDuration">工作时长（分钟）</label>
+                        <input type="number" id="workDuration" value="25" min="1" max="60">
+                    </div>
+                    <div class="setting-item">
+                        <label for="breakDuration">休息时长（分钟）</label>
+                        <input type="number" id="breakDuration" value="5" min="1" max="30">
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="soundEnabled" checked>
+                            启用提示音
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="notificationEnabled">
+                            浏览器通知
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>专注每一天，成就更好的自己 💪</p>
+        </footer>
+    </div>
+
+    <!-- 通知提示 -->
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <span class="notification-icon" id="notificationIcon">🎉</span>
+            <span class="notification-text" id="notificationText">时间到！</span>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
